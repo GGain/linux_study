@@ -1,0 +1,73 @@
+1. Install TFTP and NFS server.
+On Ubuntu 11.04 and newer:
+	apt-get install xinetd tftp tftpd isc-dhcp-server nfs-kernel-server portmap
+On Ubuntu 10.11 and older:
+	apt-get install xinetd tftp tftpd dhcp3-server nfs-kernel-server portmap 
+
+2. Setting up TFTP
+
+On Ubuntu, edit /etc/xinetd.conf and add the following lines just above the line that reads includedir /etc/xinetd.d.
+
+	service tftp
+	{
+	 socket_type = dgram
+	 protocol = udp
+	 wait = yes
+	 user = root
+	 server = /usr/sbin/in.tftpd
+	 server_args = -s /tftpboot/s32v234
+	 disable = no
+	} 
+
+4. Create the /tftpboot folder if it does not exist: ( this is the home tftp for store data.)
+	sudo mkdir /tftpboot
+
+5. Restart the xinetd server with the following command: 
+	/etc/init.d/xinetd restart 
+
+6. Test the TFTP server with the following commands 
+	tftp localhost
+	tftp> get uImage   # the uImage file must be in the tftpboot folder
+	Received 1456898 bytes in 0.4 seconds
+	tftp> quit 
+
+7. Setting up NFS
+	in file /etc/exports inserts the line below
+	/full/path/to/rfs board_ip_addr(rw,no_root_squash) 
+	where: 
+		/full/path/to/rfs: is the path to folder which you put the rootfs.
+		board_ip_addr: board ip addresss, exm 10.0.0.10
+
+8. each time you change the /etc/exports file you need to restart nfs-kernel-service to apply the changes
+	service nfs-kernel-server stop
+	service portmap stop
+	
+	service nfs-kernel-server start
+	service portmap start
+	
+	or
+	sudo service nfs-kernel-server restart
+
+SETUP ENVIROMENT FOR U-BOOT ON TREERUNNER
+1. Set path to kernel image
+
+	setenv uimage uImage
+
+2. Set path to device tree.
+
+	setenv fdt_file s32v234-evb.dtb
+
+3. set net arguments for nfs. If you install DHCP server successed you don't need to changes the default values.
+
+	setenv netargs setenv bootargs console=ttyLF0,115200 root=/dev/nfs ip=10.0.0.100 rw 	nfsroot=10.0.0.1:/tftpboot/s32v234/rfs,v3,tcp
+
+	setenv nfsbootargs setenv bootargs console=ttyLF0,115200 root=/dev/nfs rw ip=10.0.0.100:10.0.0.1::255.255.255.0::eth0:off nfsroot=10.0.0.1:/tftpboot/s32v234/rfs,nolock
+
+4. set no dynamic if you haven't install dhcp server you must set ip_dyn to no for using static ip.
+
+	setenv ip_dyn no
+
+
+
+
+
